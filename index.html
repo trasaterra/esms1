@@ -300,6 +300,8 @@
   --gold:       #e8a020;
   --orange:     #e07020;
   --white:      #ffffff;
+  --screen-safe-x: 20px;
+  --screen-safe-y: 18px;
 }
 
 html, body {
@@ -310,14 +312,18 @@ html, body {
   color: var(--white);
 }
 
+body {
+  padding: var(--screen-safe-y) var(--screen-safe-x);
+}
+
 /* ══════════════════════════════
    LAYOUT
 ══════════════════════════════ */
 .screen {
   display: grid;
-  grid-template-columns: 1fr 340px;
-  grid-template-rows: 1fr 90px;
-  width: 100vw; height: 100vh;
+  grid-template-columns: 1fr 400px;
+  grid-template-rows: 1fr 98px;
+  width: 100%; height: 100%;
 }
 
 /* ══════════════════════════════
@@ -381,17 +387,17 @@ html, body {
 .content-center {
   position: relative; z-index: 2;
   display: flex; flex-direction: column;
-  align-items: center; gap: 14px;
+  align-items: center; gap: 20px;
   text-align: center;
-  padding: 0 40px;
+  padding: 0 52px;
 }
 
 /* welcome tag */
 .welcome-tag {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 500;
-  font-size: clamp(1.2rem,1.9vw,1.8rem);
-  letter-spacing: .3em;
+  font-size: clamp(1.35rem,2.1vw,2rem);
+  letter-spacing: .24em;
   text-transform: uppercase;
   color: rgba(255,255,255,.72);
   text-shadow: 0 0 18px rgba(10,22,40,.45);
@@ -405,18 +411,18 @@ html, body {
   transition: filter .3s;
 }
 .logo-wrap:hover { filter: drop-shadow(0 0 55px rgba(232,160,32,.7)); }
-.logo-wrap img { width: clamp(320px,42vw,620px); height:auto; }
+.logo-wrap img { width: clamp(430px, 50vw, 760px); height:auto; }
 
 /* roar */
 .roar-line {
   font-family: 'Oswald', sans-serif;
   font-weight: 600;
-  font-size: clamp(1.3rem,2.4vw,2.4rem);
+  font-size: clamp(1.55rem,2.7vw,2.9rem);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: .75em;
-  letter-spacing: .2em;
+  letter-spacing: .14em;
   text-transform: uppercase;
   color: var(--gold);
   text-shadow: 0 0 28px rgba(232,160,32,.55);
@@ -465,14 +471,14 @@ html, body {
 .panel-header {
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 42px;
+  height: 48px;
   background: var(--navy-light);
   z-index: 10;
   display: flex; align-items: center; justify-content: center;
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: .95rem;
+  font-size: 1.08rem;
   font-weight: 700;
-  letter-spacing: .22em;
+  letter-spacing: .16em;
   text-transform: uppercase;
   color: rgba(255,255,255,.82);
   border-bottom: 1px solid rgba(255,255,255,.08);
@@ -481,7 +487,7 @@ html, body {
 /* scrolling track */
 .photo-track {
   position: absolute;
-  top: 42px; left: 0; right: 0;
+  top: 48px; left: 0; right: 0;
   display: flex; flex-direction: column;
   gap: 0;
   animation: scrollUp 24s linear infinite;
@@ -497,15 +503,16 @@ html, body {
   position: relative; width: 100%; flex-shrink: 0;
 }
 .photo-item img {
-  width: 100%; height: 220px;
+  width: 100%; height: 238px;
   object-fit: cover; display: block;
+  object-position: center 38%;
 }
 
 /* caption overlay */
 .photo-item .caption {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  padding: 26px 12px 10px;
+  padding: 30px 14px 12px;
   background: linear-gradient(
     to top,
     rgba(10,22,40,.98) 0%,
@@ -515,9 +522,9 @@ html, body {
     transparent 100%
   );
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: .95rem;
+  font-size: 1.08rem;
   font-weight: 700;
-  letter-spacing: .14em;
+  letter-spacing: .11em;
   text-transform: uppercase;
   color: var(--gold);
   text-shadow: 0 1px 8px rgba(0,0,0,.45);
@@ -528,7 +535,7 @@ html, body {
 .photo-panel::after {
   content:''; position:absolute; left:0; right:0; z-index:5; pointer-events:none;
 }
-.photo-panel::before { top:42px; height:60px; background:linear-gradient(to bottom,var(--navy-mid),transparent); }
+.photo-panel::before { top:48px; height:70px; background:linear-gradient(to bottom,var(--navy-mid),transparent); }
 .photo-panel::after  { bottom:0; height:80px; background:linear-gradient(to top,   var(--navy-mid),transparent); }
 
 /* ══════════════════════════════
@@ -565,7 +572,7 @@ html, body {
 .ticker-item {
   font-family: 'Oswald', sans-serif;
   font-weight: 500;
-  font-size: 1.3rem;
+  font-size: 1.45rem;
   letter-spacing: .04em;
   color: var(--white);
   padding: 0 45px;
