@@ -1,0 +1,770 @@
+<html lang="en"><head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js" integrity="sha512-iZ2ORl595Wx6miw+GuadDet4WQbdSWS3JLMoNfY8cRGoEFy6oT3G9IbcrBeL6AfkgpA51ETt/faX6yLV+/gFJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+      (function() {
+        const originalConsole = window.console;
+        window.console = {
+          log: (...args) => {
+            originalConsole.log(...args);
+            window.parent.postMessage({ type: 'console', message: args.join(' ') }, '*');
+          },
+          error: (...args) => {
+            originalConsole.error(...args);
+            window.parent.postMessage({ type: 'console', message: 'Error: ' + args.join(' ') }, '*');
+          },
+          warn: (...args) => {
+            originalConsole.warn(...args);
+            window.parent.postMessage({ type: 'console', message: 'Warning: ' + args.join(' ') }, '*');
+          }
+        };
+
+        let requestId = 0;
+        let callbacksMap = new Map();
+        let streamControllers = new Map();
+        
+        window.claude = {
+          complete: (prompt) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'claudeComplete', id, prompt }, '*');
+            });
+          }
+        };
+
+        window.storage = {
+          get: (key, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'storageGet', id, key, shared }, '*');
+            });
+          },
+          set: (key, value, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'storageSet', id, key, value, shared }, '*');
+            });
+          },
+          delete: (key, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'storageDelete', id, key, shared }, '*');
+            });
+          },
+          list: (prefix, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'storageList', id, prefix, shared }, '*');
+            });
+          }
+        };
+
+        let pendingBlobs = new Map();
+        URL.createObjectURL = (blob) => {
+          // Store the blob and create an ID and URL for it
+          const blobId = `blob-${Date.now()}-${Math.random()}`;
+          pendingBlobs.set(blobId, blob);
+          return `blob-request://${blobId}`;
+        };
+
+        URL.revokeObjectURL = (url) => {
+          // Remove the blob from our store
+          const blobId = url.replace("blob-request://", "");
+          pendingBlobs.delete(blobId);
+        };
+
+        const getBlobFromURL = (url) => {
+          const blobId = url.replace("blob-request://", "");
+          return pendingBlobs.get(blobId);
+        };
+
+        // Override global fetch with streaming support
+        window.fetch = (url, init = {}) => {
+          return new Promise((resolve, reject) => {
+            const id = requestId++;
+            const channelId = `fetch-${id}-${Date.now()}`;
+            
+            callbacksMap.set(id, { 
+              resolve: (response) => {
+                // Create a ReadableStream for the response body
+                const stream = new ReadableStream({
+                  start(controller) {
+                    streamControllers.set(channelId, controller);
+                  },
+                  cancel() {
+                    streamControllers.delete(channelId);
+                  }
+                });
+                
+                // Create and return the Response with the stream
+                resolve(new Response(stream, {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers: response.headers
+                }));
+              },
+              reject,
+              channelId
+            });
+            
+            window.parent.postMessage({
+              type: 'proxyFetch',
+              id,
+              url,
+              init,
+              channelId
+            }, '*');
+          });
+        };
+
+        window.addEventListener('message', async (event) => {
+          if (event.data.type === 'takeScreenshot') {
+            const rootElement = document.getElementById('artifacts-component-root-html');
+            if (!rootElement) {
+              window.parent.postMessage({
+                type: 'screenshotError',
+                error: new Error('Root element not found'),
+              }, '*');
+            }
+            const screenshot = await htmlToImage.toPng(rootElement, {
+              imagePlaceholder:
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAA1JREFUGFdjePDgwX8ACOQDoNsk0PMAAAAASUVORK5CYII=",
+            });
+            window.parent.postMessage({
+              type: 'screenshotData',
+              data: screenshot,
+            }, '*');
+          } else if (event.data.type === 'claudeComplete') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.completion);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'proxyFetchResponse') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+              callbacksMap.delete(event.data.id);
+            } else {
+              // Initial response with headers, status, etc.
+              callback.resolve({
+                status: event.data.status,
+                statusText: event.data.statusText,
+                headers: event.data.headers
+              });
+              // Don't delete the callback yet if streaming
+              if (!event.data.body) {
+                callbacksMap.delete(event.data.id);
+              }
+            }
+          } else if (event.data.type === 'proxyFetchStream') {
+            // Handle streaming data chunks
+            const controller = streamControllers.get(event.data.channelId);
+            if (controller) {
+              if (event.data.error) {
+                controller.error(new Error(event.data.error));
+                streamControllers.delete(event.data.channelId);
+              } else if (event.data.done) {
+                controller.close();
+                streamControllers.delete(event.data.channelId);
+                // Clean up the callback
+                const callback = Array.from(callbacksMap.entries()).find(
+                  ([_, value]) => value.channelId === event.data.channelId
+                );
+                if (callback) {
+                  callbacksMap.delete(callback[0]);
+                }
+              } else if (event.data.chunk) {
+                controller.enqueue(new Uint8Array(event.data.chunk));
+              }
+            }
+          } else if (event.data.type === 'storageGet') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageSet') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageDelete') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageList') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          }
+        });
+
+        window.addEventListener('click', (event) => {
+          const isEl = event.target instanceof HTMLElement;
+          if (!isEl) return;
+    
+          // find ancestor links
+          const linkEl = event.target.closest("a");
+          if (!linkEl || !linkEl.href) return;
+    
+          event.preventDefault();
+          event.stopImmediatePropagation();
+    
+          if (linkEl.href.startsWith("blob-request:")) {
+            const blob = getBlobFromURL(linkEl.href);
+            if (!blob) return;
+            void blob.arrayBuffer().then((data) => {
+              window.parent.postMessage({
+                type: "downloadFile",
+                filename: linkEl.download,
+                data,
+                mimeType: blob.type || "application/octet-stream",
+              });
+            });
+          } else if (linkEl.href.startsWith("data:")) {
+            const [header, base64Data] = linkEl.href.split(",");
+            const mimeMatch = header.match(/data:([^;]+)/);
+            const mimeType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+            const binaryString = atob(base64Data);
+            const data = Uint8Array.from(binaryString, (c) =>
+              c.charCodeAt(0),
+            ).buffer;
+            window.parent.postMessage({
+              type: "downloadFile",
+              filename: linkEl.download,
+              data,
+              mimeType,
+            });
+          } else {
+            let linkUrl;
+            try {
+              linkUrl = new URL(linkEl.href);
+            } catch (error) {
+              return;
+            }
+    
+            if (linkUrl.hostname === window.location.hostname) return;
+      
+            window.parent.postMessage({
+              type: 'openExternal',
+              href: linkEl.href,
+            }, '*');
+          }
+      });
+
+        const originalOpen = window.open;
+        window.open = function (url) {
+          window.parent.postMessage({
+            type: "openExternal",
+            href: url,
+          }, "*");
+        };
+
+        window.addEventListener('error', (event) => {
+          window.parent.postMessage({ type: 'console', message: 'Uncaught Error: ' + event.message }, '*');
+        });
+      })();
+    </script>
+  
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESMS Welcome Screen</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&amp;family=Barlow+Condensed:wght@300;400;700;800&amp;family=Teko:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy:       #0a1628;
+  --navy-mid:   #112244;
+  --navy-light: #1a3a6e;
+  --gold:       #e8a020;
+  --orange:     #e07020;
+  --white:      #ffffff;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--navy);
+  font-family: 'Oswald', sans-serif;
+  color: var(--white);
+}
+
+/* ══════════════════════════════
+   LAYOUT
+══════════════════════════════ */
+.screen {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  grid-template-rows: 1fr 90px;
+  width: 100vw; height: 100vh;
+}
+
+/* ══════════════════════════════
+   MAIN LEFT PANEL
+══════════════════════════════ */
+.main-panel {
+  grid-column: 1; grid-row: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(160deg, #0a1628 0%, #0d1f42 100%);
+}
+
+/* animated diagonal lines */
+.main-panel::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    -52deg,
+    transparent, transparent 80px,
+    rgba(255,255,255,0.015) 80px,
+    rgba(255,255,255,0.015) 82px
+  );
+  pointer-events: none;
+}
+
+/* pulsing glow orb */
+.orb {
+  position: absolute;
+  width: 60vw; height: 60vw;
+  max-width: 700px; max-height: 700px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(26,58,110,0.55) 0%, transparent 70%);
+  top: 50%; left: 46%;
+  transform: translate(-50%, -50%);
+  animation: orbPulse 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes orbPulse {
+  0%,100% { transform: translate(-50%,-50%) scale(1);   opacity:.5; }
+  50%      { transform: translate(-50%,-50%) scale(1.15); opacity:1; }
+}
+
+/* particle dots */
+.particles { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.particle {
+  position:absolute;
+  border-radius:50%;
+  background: rgba(232,160,32,0.55);
+  animation: floatUp linear infinite;
+}
+@keyframes floatUp {
+  0%   { transform: translateY(0) scale(1);   opacity:.7; }
+  100% { transform: translateY(-110vh) scale(.3); opacity:0; }
+}
+
+.content-center {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 14px;
+  text-align: center;
+  padding: 0 40px;
+}
+
+/* welcome tag */
+.welcome-tag {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 500;
+  font-size: clamp(1.2rem,1.9vw,1.8rem);
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.72);
+  text-shadow: 0 0 18px rgba(10,22,40,.45);
+  animation: fadeDown .9s ease both;
+}
+
+/* logo */
+.logo-wrap {
+  animation: fadeDown .9s .15s ease both;
+  filter: drop-shadow(0 0 35px rgba(232,160,32,.35));
+  transition: filter .3s;
+}
+.logo-wrap:hover { filter: drop-shadow(0 0 55px rgba(232,160,32,.7)); }
+.logo-wrap img { width: clamp(320px,42vw,620px); height:auto; }
+
+/* roar */
+.roar-line {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.3rem,2.4vw,2.4rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .75em;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-shadow: 0 0 28px rgba(232,160,32,.55);
+  animation: fadeDown .9s .6s ease both, goldGlow 3s ease-in-out 1.5s infinite;
+}
+
+.roar-line .mascot-icon {
+  width: 1.25em;
+  height: 1.25em;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 16px rgba(232,160,32,.7));
+}
+
+.ticker-label img {
+  width: 1.25rem;
+  height: 1.25rem;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-right: .4rem;
+  margin-left: -.2rem;
+}
+
+@keyframes goldGlow {
+  0%,100% { text-shadow: 0 0 28px rgba(232,160,32,.55); }
+  50%      { text-shadow: 0 0 55px rgba(232,160,32,1), 0 0 90px rgba(224,112,32,.5); }
+}
+
+@keyframes fadeDown {
+  from { opacity:0; transform:translateY(-20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ══════════════════════════════
+   RIGHT PHOTO PANEL
+══════════════════════════════ */
+.photo-panel {
+  grid-column: 2; grid-row: 1;
+  position: relative;
+  overflow: hidden;
+  border-left: 2px solid rgba(255,255,255,.07);
+  background: var(--navy-mid);
+}
+
+/* header */
+.panel-header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 42px;
+  background: var(--navy-light);
+  z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: .95rem;
+  font-weight: 700;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.82);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+/* scrolling track */
+.photo-track {
+  position: absolute;
+  top: 42px; left: 0; right: 0;
+  display: flex; flex-direction: column;
+  gap: 0;
+  animation: scrollUp 24s linear infinite;
+}
+.photo-track:hover { animation-play-state: paused; }
+
+@keyframes scrollUp {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+.photo-item {
+  position: relative; width: 100%; flex-shrink: 0;
+}
+.photo-item img {
+  width: 100%; height: 220px;
+  object-fit: cover; display: block;
+}
+
+/* caption overlay */
+.photo-item .caption {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 26px 12px 10px;
+  background: linear-gradient(
+    to top,
+    rgba(10,22,40,.98) 0%,
+    rgba(10,22,40,.9) 30%,
+    rgba(10,22,40,.58) 62%,
+    rgba(10,22,40,.18) 84%,
+    transparent 100%
+  );
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: .95rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-shadow: 0 1px 8px rgba(0,0,0,.45);
+}
+
+/* top/bottom fade overlays */
+.photo-panel::before,
+.photo-panel::after {
+  content:''; position:absolute; left:0; right:0; z-index:5; pointer-events:none;
+}
+.photo-panel::before { top:42px; height:60px; background:linear-gradient(to bottom,var(--navy-mid),transparent); }
+.photo-panel::after  { bottom:0; height:80px; background:linear-gradient(to top,   var(--navy-mid),transparent); }
+
+/* ══════════════════════════════
+   BOTTOM TICKER
+══════════════════════════════ */
+.ticker-bar {
+  grid-column: 1 / -1; grid-row: 2;
+  background: linear-gradient(90deg, var(--navy-light), #0f2a55);
+  border-top: 3px solid var(--gold);
+  display: flex; align-items: center;
+  gap: 0;
+  overflow: hidden; position: relative;
+}
+
+.ticker-track-wrap {
+  flex:1; overflow:hidden;
+  min-width: 0;
+  padding: 0 18px 0 14px;
+  height:100%; display:flex; align-items:center;
+}
+
+.ticker-track {
+  display:flex; gap:0;
+  white-space:nowrap;
+  animation: tickerScroll 38s linear infinite;
+}
+.ticker-track:hover { animation-play-state: paused; }
+
+@keyframes tickerScroll {
+  0%   { transform:translateX(0); }
+  100% { transform:translateX(-50%); }
+}
+
+.ticker-item {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 500;
+  font-size: 1.3rem;
+  letter-spacing: .04em;
+  color: var(--white);
+  padding: 0 45px;
+  display: inline-flex; align-items: center; gap:12px;
+}
+.ticker-item .dot {
+  width:6px; height:6px;
+  border-radius:50%;
+  background: var(--gold);
+  flex-shrink:0;
+}
+
+/* clock */
+.clock {
+  flex-shrink: 0;
+  min-width: 220px;
+  height: 100%;
+  padding: 0 16px 0 14px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  background: linear-gradient(135deg, var(--gold), #f0b64b);
+  color: var(--navy);
+  box-shadow: 10px 0 22px rgba(10,22,40,.22);
+  position: relative;
+  z-index: 12;
+  clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 50%, calc(100% - 24px) 100%, 0 100%);
+}
+
+.clock-icon {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.clock-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+}
+
+.clock-time {
+  font-family:'Teko',sans-serif;
+  font-weight:600;
+  font-size:1.9rem;
+  line-height: .95;
+  letter-spacing:.08em;
+}
+
+.clock-date {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: .95rem;
+  line-height: 1;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+</style>
+</head>
+<body id="artifacts-component-root-html">
+
+<div class="screen">
+
+  <!-- ── MAIN PANEL ── -->
+  <div class="main-panel">
+    <div class="orb"></div>
+
+    <!-- floating particles -->
+    <div class="particles" id="particles"><div class="particle" style="width: 6.26126px; height: 6.26126px; left: 95.3927%; bottom: -10px; opacity: 0.407428; animation-duration: 18.3929s; animation-delay: 2.46364s;"></div><div class="particle" style="width: 3.78527px; height: 3.78527px; left: 39.2503%; bottom: -10px; opacity: 0.664582; animation-duration: 19.398s; animation-delay: 3.90086s;"></div><div class="particle" style="width: 4.38706px; height: 4.38706px; left: 43.0209%; bottom: -10px; opacity: 0.483265; animation-duration: 10.0703s; animation-delay: 5.47156s;"></div><div class="particle" style="width: 4.31697px; height: 4.31697px; left: 67.1078%; bottom: -10px; opacity: 0.202481; animation-duration: 14.3734s; animation-delay: 2.32026s;"></div><div class="particle" style="width: 6.04632px; height: 6.04632px; left: 54.556%; bottom: -10px; opacity: 0.222687; animation-duration: 18.3614s; animation-delay: 7.66677s;"></div><div class="particle" style="width: 5.07848px; height: 5.07848px; left: 3.03125%; bottom: -10px; opacity: 0.293831; animation-duration: 12.7958s; animation-delay: 8.69474s;"></div><div class="particle" style="width: 4.65055px; height: 4.65055px; left: 35.1787%; bottom: -10px; opacity: 0.734194; animation-duration: 19.763s; animation-delay: 5.44114s;"></div><div class="particle" style="width: 2.40283px; height: 2.40283px; left: 74.0124%; bottom: -10px; opacity: 0.699934; animation-duration: 11.7456s; animation-delay: 0.484923s;"></div><div class="particle" style="width: 6.61125px; height: 6.61125px; left: 18.8134%; bottom: -10px; opacity: 0.447962; animation-duration: 10.7773s; animation-delay: 0.302461s;"></div><div class="particle" style="width: 6.17127px; height: 6.17127px; left: 26.2296%; bottom: -10px; opacity: 0.790716; animation-duration: 12.2685s; animation-delay: 4.82857s;"></div><div class="particle" style="width: 5.22198px; height: 5.22198px; left: 65.8042%; bottom: -10px; opacity: 0.436553; animation-duration: 10.0601s; animation-delay: 8.31648s;"></div><div class="particle" style="width: 5.29761px; height: 5.29761px; left: 66.1782%; bottom: -10px; opacity: 0.281166; animation-duration: 16.548s; animation-delay: 3.98038s;"></div><div class="particle" style="width: 5.66189px; height: 5.66189px; left: 44.5581%; bottom: -10px; opacity: 0.555431; animation-duration: 11.8745s; animation-delay: 7.28924s;"></div><div class="particle" style="width: 5.19415px; height: 5.19415px; left: 42.3015%; bottom: -10px; opacity: 0.743985; animation-duration: 8.68083s; animation-delay: 5.14629s;"></div><div class="particle" style="width: 3.58213px; height: 3.58213px; left: 70.5089%; bottom: -10px; opacity: 0.784403; animation-duration: 9.09247s; animation-delay: 9.20479s;"></div><div class="particle" style="width: 4.58748px; height: 4.58748px; left: 56.7435%; bottom: -10px; opacity: 0.65317; animation-duration: 12.6176s; animation-delay: 8.2175s;"></div><div class="particle" style="width: 6.03385px; height: 6.03385px; left: 75.302%; bottom: -10px; opacity: 0.624115; animation-duration: 10.9787s; animation-delay: 7.8968s;"></div><div class="particle" style="width: 4.90836px; height: 4.90836px; left: 63.0281%; bottom: -10px; opacity: 0.766539; animation-duration: 13.4908s; animation-delay: 7.00362s;"></div></div>
+
+    <div class="content-center">
+      <div class="welcome-tag">Welcome to</div>
+
+      <div class="logo-wrap">
+        <img src="assets/images/esms-tiger-logo.png" alt="ESMS Tiger Logo">
+      </div>
+
+      <div class="roar-line">
+        <img class="mascot-icon" src="assets/images/tiger-head.png" alt="Tiger Head">
+        <span>Go Tigers — Roar!</span>
+        <img class="mascot-icon" src="assets/images/tiger-head.png" alt="Tiger Head">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT PHOTO PANEL ── -->
+  <div class="photo-panel">
+    <div class="panel-header">ESMS Athletics</div>
+    <div class="photo-track">
+      <div class="photo-item">
+        <img src="assets/images/athletics-soccer.jpg" alt="Soccer Team">
+        <div class="caption">⚽ Soccer</div>
+      </div>
+      <div class="photo-item">
+        <img src="assets/images/athletics-baseball.jpg" alt="Baseball">
+        <div class="caption">⚾ Baseball</div>
+      </div>
+      <div class="photo-item">
+        <img src="assets/images/athletics-game-day.jpg" alt="Game Day">
+        <div class="caption">🏆 Game Day</div>
+      </div>
+      <div class="photo-item">
+        <img src="assets/images/girls-team.jpg" alt="Girls Team">
+        <div class="caption">🏐 Girls Team</div>
+      </div>
+      <!-- duplicate for seamless loop -->
+      <div class="photo-item">
+        <img src="assets/images/athletics-soccer.jpg" alt="Soccer Team">
+        <div class="caption">⚽ Soccer</div>
+      </div>
+      <div class="photo-item">
+        <img src="assets/images/athletics-baseball.jpg" alt="Baseball">
+        <div class="caption">⚾ Baseball</div>
+      </div>
+      <div class="photo-item">
+        <img src="assets/images/athletics-game-day.jpg" alt="Game Day">
+        <div class="caption">🏆 Game Day</div>
+      </div>
+      <div class="photo-item">
+        <img src="assets/images/girls-team.jpg" alt="Girls Team">
+        <div class="caption">🏐 Girls Team</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TICKER ── -->
+  <div class="ticker-bar">
+    <div class="clock" aria-live="polite">
+      <img class="clock-icon" src="assets/images/tiger-head.png" alt="Tiger Head">
+      <div class="clock-copy">
+        <div class="clock-time" id="clock-time">11:05 AM</div>
+        <div class="clock-date" id="clock-date">MON APR 21</div>
+      </div>
+    </div>
+    <div class="ticker-track-wrap">
+      <div class="ticker-track">
+        <span class="ticker-item"><span class="dot"></span>Welcome to East Side Middle School — Home of the Tigers!</span>
+        <span class="ticker-item"><span class="dot"></span>Go Tigers — Roar!</span>
+        <span class="ticker-item"><span class="dot"></span>ESMS Athletics — Excellence on and off the field</span>
+        <span class="ticker-item"><span class="dot"></span>Be Bold · Be Kind · Be a Tiger</span>
+        <span class="ticker-item"><span class="dot"></span>East Side Middle School — Pride, Passion, Performance</span>
+        <span class="ticker-item"><span class="dot"></span>Soccer ⚽ · Baseball ⚾ · And more — Go Tigers!</span>
+        <!-- duplicate -->
+        <span class="ticker-item"><span class="dot"></span>Welcome to East Side Middle School — Home of the Tigers!</span>
+        <span class="ticker-item"><span class="dot"></span>Go Tigers — Roar!</span>
+        <span class="ticker-item"><span class="dot"></span>ESMS Athletics — Excellence on and off the field</span>
+        <span class="ticker-item"><span class="dot"></span>Be Bold · Be Kind · Be a Tiger</span>
+        <span class="ticker-item"><span class="dot"></span>East Side Middle School — Pride, Passion, Performance</span>
+        <span class="ticker-item"><span class="dot"></span>Soccer ⚽ · Baseball ⚾ · And more — Go Tigers!</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Live clock
+function tick() {
+  const n = new Date();
+  const time = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(n);
+  const date = new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  }).format(n).toUpperCase();
+  document.getElementById('clock-time').textContent = time;
+  document.getElementById('clock-date').textContent = date;
+}
+tick(); setInterval(tick, 10000);
+
+// Floating particles
+const container = document.getElementById('particles');
+function makeParticle() {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  const size = Math.random() * 5 + 2;
+  p.style.cssText = `
+    width:${size}px; height:${size}px;
+    left:${Math.random()*100}%;
+    bottom:-10px;
+    opacity:${Math.random()*.6+.2};
+    animation-duration:${Math.random()*12+8}s;
+    animation-delay:${Math.random()*10}s;
+  `;
+  container.appendChild(p);
+  setTimeout(() => p.remove(), 22000);
+}
+for(let i=0;i<18;i++) setTimeout(makeParticle, i*600);
+setInterval(makeParticle, 1200);
+</script>
+
+
+</body></html>
