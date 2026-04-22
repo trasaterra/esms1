@@ -549,6 +549,7 @@ body {
   border-top: 3px solid var(--gold);
   display: flex; align-items: center;
   gap: 0;
+  padding-left: 6px;
   overflow: hidden; position: relative;
 }
 
@@ -590,35 +591,49 @@ body {
 /* clock */
 .clock {
   flex-shrink: 0;
-  min-width: 220px;
+  min-width: 206px;
   height: 100%;
-  padding: 0 16px 0 18px;
+  padding: 0 22px;
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  background: linear-gradient(135deg, var(--gold), #f0b64b);
+  justify-content: center;
+  gap: 0;
+  background: var(--gold);
   color: var(--navy);
   box-shadow: 10px 0 22px rgba(10,22,40,.22);
   position: relative;
   z-index: 12;
-  clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 50%, calc(100% - 24px) 100%, 0 100%);
 }
 
-.clock-icon {
-  width: 2rem;
-  height: 2rem;
-  object-fit: contain;
-  flex-shrink: 0;
+.clock::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background: var(--gold);
+}
+
+.clock::after {
+  content: '';
+  position: absolute;
+  right: -24px;
+  top: 0;
+  width: 24px;
+  height: 100%;
+  background: var(--gold);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
 
 .clock-copy {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   gap: 2px;
+  text-align: center;
 }
 
 .clock-time {
@@ -671,36 +686,36 @@ body {
     <div class="photo-track">
       <div class="photo-item">
         <img src="assets/images/athletics-soccer.jpg" alt="Soccer Team">
-        <div class="caption">⚽ Soccer</div>
+        <div class="caption">Soccer</div>
       </div>
       <div class="photo-item">
         <img src="assets/images/athletics-baseball.jpg" alt="Baseball">
-        <div class="caption">⚾ Baseball</div>
+        <div class="caption">Baseball</div>
       </div>
       <div class="photo-item">
         <img src="assets/images/athletics-game-day.jpg" alt="Game Day">
-        <div class="caption">🏆 Game Day</div>
+        <div class="caption">Game Day</div>
       </div>
       <div class="photo-item">
         <img src="assets/images/girls-team.jpg" alt="Girls Team">
-        <div class="caption">🏐 Girls Team</div>
+        <div class="caption">Girls Team</div>
       </div>
       <!-- duplicate for seamless loop -->
       <div class="photo-item">
         <img src="assets/images/athletics-soccer.jpg" alt="Soccer Team">
-        <div class="caption">⚽ Soccer</div>
+        <div class="caption">Soccer</div>
       </div>
       <div class="photo-item">
         <img src="assets/images/athletics-baseball.jpg" alt="Baseball">
-        <div class="caption">⚾ Baseball</div>
+        <div class="caption">Baseball</div>
       </div>
       <div class="photo-item">
         <img src="assets/images/athletics-game-day.jpg" alt="Game Day">
-        <div class="caption">🏆 Game Day</div>
+        <div class="caption">Game Day</div>
       </div>
       <div class="photo-item">
         <img src="assets/images/girls-team.jpg" alt="Girls Team">
-        <div class="caption">🏐 Girls Team</div>
+        <div class="caption">Girls Team</div>
       </div>
     </div>
   </div>
@@ -708,7 +723,6 @@ body {
   <!-- ── TICKER ── -->
   <div class="ticker-bar">
     <div class="clock" aria-live="polite">
-      <img class="clock-icon" src="assets/images/tiger-head.png" alt="Tiger Head">
       <div class="clock-copy">
         <div class="clock-time" id="clock-time">11:05 AM</div>
         <div class="clock-date" id="clock-date">MON APR 21</div>
@@ -719,16 +733,16 @@ body {
         <span class="ticker-item"><span class="dot"></span>Welcome to East Side Middle School — Home of the Tigers!</span>
         <span class="ticker-item"><span class="dot"></span>Go Tigers — Roar!</span>
         <span class="ticker-item"><span class="dot"></span>ESMS Athletics — Excellence on and off the field</span>
-        <span class="ticker-item"><span class="dot"></span>Be Bold · Be Kind · Be a Tiger</span>
+        <span class="ticker-item"><span class="dot"></span>Be Bold | Be Kind | Be a Tiger</span>
         <span class="ticker-item"><span class="dot"></span>East Side Middle School — Pride, Passion, Performance</span>
-        <span class="ticker-item"><span class="dot"></span>Soccer ⚽ · Baseball ⚾ · And more — Go Tigers!</span>
+        <span class="ticker-item"><span class="dot"></span>Soccer | Baseball | And More - Go Tigers!</span>
         <!-- duplicate -->
         <span class="ticker-item"><span class="dot"></span>Welcome to East Side Middle School — Home of the Tigers!</span>
         <span class="ticker-item"><span class="dot"></span>Go Tigers — Roar!</span>
         <span class="ticker-item"><span class="dot"></span>ESMS Athletics — Excellence on and off the field</span>
-        <span class="ticker-item"><span class="dot"></span>Be Bold · Be Kind · Be a Tiger</span>
+        <span class="ticker-item"><span class="dot"></span>Be Bold | Be Kind | Be a Tiger</span>
         <span class="ticker-item"><span class="dot"></span>East Side Middle School — Pride, Passion, Performance</span>
-        <span class="ticker-item"><span class="dot"></span>Soccer ⚽ · Baseball ⚾ · And more — Go Tigers!</span>
+        <span class="ticker-item"><span class="dot"></span>Soccer | Baseball | And More - Go Tigers!</span>
       </div>
     </div>
   </div>
