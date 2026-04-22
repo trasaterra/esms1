@@ -300,8 +300,10 @@
   --gold:       #e8a020;
   --orange:     #e07020;
   --white:      #ffffff;
-  --screen-safe-x: 10px;
-  --screen-safe-y: 16px;
+  --screen-safe-top: 16px;
+  --screen-safe-right: 18px;
+  --screen-safe-bottom: 22px;
+  --screen-safe-left: 18px;
 }
 
 html, body {
@@ -313,7 +315,7 @@ html, body {
 }
 
 body {
-  padding: var(--screen-safe-y) var(--screen-safe-x);
+  padding: var(--screen-safe-top) var(--screen-safe-right) var(--screen-safe-bottom) var(--screen-safe-left);
 }
 
 /* ══════════════════════════════
@@ -590,7 +592,7 @@ body {
   flex-shrink: 0;
   min-width: 220px;
   height: 100%;
-  padding: 0 16px 0 14px;
+  padding: 0 16px 0 18px;
   display: flex;
   flex-direction: row;
   align-items: center;
