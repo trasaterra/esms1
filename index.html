@@ -881,7 +881,8 @@ body {
 
 <script>
 const ANNOUNCEMENT_CONFIG = {
-  eventsApiUrl: '/api/weekly-events',
+  eventsDataUrl: './weekly-events.json',
+  overrideDataUrl: './override.json',
   refreshMs: 300000,
   fallbackHeading: 'School Announcements',
 };
@@ -971,6 +972,32 @@ function buildAnnouncementDisplay(payload) {
       label: event.label || formatShortPanelDate(new Date(event.start)),
       title: event.title,
     })),
+  };
+}
+
+function buildOverrideDisplay(payload) {
+  const items = Array.isArray(payload.items)
+    ? payload.items
+        .map((item) => {
+          if (typeof item === 'string') {
+            return { label: 'Announcement', title: item.trim() };
+          }
+
+          if (item && typeof item === 'object') {
+            return {
+              label: item.label ? String(item.label).trim() : 'Announcement',
+              title: item.title ? String(item.title).trim() : '',
+            };
+          }
+
+          return null;
+        })
+        .filter((item) => item && item.title)
+    : [];
+
+  return {
+    heading: payload.heading || 'Announcement',
+    items,
   };
 }
 
@@ -1094,7 +1121,19 @@ async function fetchAnnouncements() {
     };
   }
 
-  const payload = await loadJson(ANNOUNCEMENT_CONFIG.eventsApiUrl);
+  try {
+    const overridePayload = await loadJson(ANNOUNCEMENT_CONFIG.overrideDataUrl);
+    if (overridePayload && overridePayload.active) {
+      const overrideDisplay = buildOverrideDisplay(overridePayload);
+      if (overrideDisplay.items.length) {
+        return overrideDisplay;
+      }
+    }
+  } catch (error) {
+    console.warn('Override feed unavailable.', error instanceof Error ? error.message : error);
+  }
+
+  const payload = await loadJson(ANNOUNCEMENT_CONFIG.eventsDataUrl);
   return buildAnnouncementDisplay(payload);
 }
 

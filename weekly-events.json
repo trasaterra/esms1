@@ -1,0 +1,94 @@
+{
+  "heading": "This Week | Apr 28 - May 3",
+  "generatedAt": "2026-04-28T12:00:22.279342-04:00",
+  "events": [
+    {
+      "title": "Varsity Baseball Game",
+      "description": "ESMS vs. Bea Fuller Rodgers at 3:45pm",
+      "allDay": false,
+      "start": "2026-04-28T15:45:00-04:00",
+      "end": "2026-04-28T16:45:00-04:00",
+      "label": "TUE APR 28 | 3:45 PM"
+    },
+    {
+      "title": "PTA Meeting (Zoom 6pm)",
+      "description": "PTA Meeting \u2013 April 28 (Zoom 6pm)",
+      "allDay": false,
+      "start": "2026-04-28T18:00:00-04:00",
+      "end": "2026-04-28T19:00:00-04:00",
+      "label": "TUE APR 28 | 6:00 PM"
+    },
+    {
+      "title": "Volleyball Match (Boys + JV Girls)",
+      "description": "Wagner vs. ESMS Boys 4pm JV Girls 5pm",
+      "allDay": false,
+      "start": "2026-04-29T16:00:00-04:00",
+      "end": "2026-04-29T18:00:00-04:00",
+      "label": "WED APR 29 | 4:00 PM"
+    },
+    {
+      "title": "NYS Grade 6 Math",
+      "description": "NYS Grade 6 Math: April 30, May 1",
+      "allDay": true,
+      "start": "2026-04-30T00:00:00-04:00",
+      "end": "2026-05-01T00:00:00-04:00",
+      "label": "THU APR 30"
+    },
+    {
+      "title": "NYS Grade 7 Math",
+      "description": "NYS Grade 7 Math: April 30, May 1",
+      "allDay": true,
+      "start": "2026-04-30T00:00:00-04:00",
+      "end": "2026-05-01T00:00:00-04:00",
+      "label": "THU APR 30"
+    },
+    {
+      "title": "Varsity Baseball Game",
+      "description": "ESMS vs. Pedro Albizu Campos&nbsp;at 3:45pm",
+      "allDay": false,
+      "start": "2026-04-30T15:45:00-04:00",
+      "end": "2026-04-30T16:45:00-04:00",
+      "label": "THU APR 30 | 3:45 PM"
+    },
+    {
+      "title": "Boys Soccer Game",
+      "description": "ESMS vs. West Prep",
+      "allDay": false,
+      "start": "2026-04-30T16:00:00-04:00",
+      "end": "2026-05-01T00:00:00-04:00",
+      "label": "THU APR 30 | 4:00 PM"
+    },
+    {
+      "title": "Softball Game",
+      "description": "ESMS va. Booker T. Washington",
+      "allDay": false,
+      "start": "2026-04-30T16:00:00-04:00",
+      "end": "2026-05-01T00:00:00-04:00",
+      "label": "THU APR 30 | 4:00 PM"
+    },
+    {
+      "title": "Girls Soccer Game",
+      "description": "ESMS vs. 348",
+      "allDay": false,
+      "start": "2026-04-30T17:00:00-04:00",
+      "end": "2026-04-30T18:00:00-04:00",
+      "label": "THU APR 30 | 5:00 PM"
+    },
+    {
+      "title": "NYS Grade 6 Math",
+      "description": "NYS Grade 6 Math: April 30, May 1",
+      "allDay": true,
+      "start": "2026-05-01T00:00:00-04:00",
+      "end": "2026-05-02T00:00:00-04:00",
+      "label": "FRI MAY 1"
+    },
+    {
+      "title": "NYS Grade 7 Math",
+      "description": "NYS Grade 7 Math: April 30, May 1",
+      "allDay": true,
+      "start": "2026-05-01T00:00:00-04:00",
+      "end": "2026-05-02T00:00:00-04:00",
+      "label": "FRI MAY 1"
+    }
+  ]
+}
