@@ -341,6 +341,27 @@ body {
   grid-column: 3;
 }
 
+.screen.is-lite {
+  grid-template-columns: 1fr;
+}
+
+.screen.is-lite.has-announcements {
+  grid-template-columns: minmax(300px, 34vw) minmax(0, 1fr);
+}
+
+.screen.is-lite .main-panel,
+.screen.is-lite.has-announcements .main-panel {
+  grid-column: 1;
+}
+
+.screen.is-lite.has-announcements .main-panel {
+  grid-column: 2;
+}
+
+.screen.is-lite .photo-panel {
+  display: none;
+}
+
 /* ══════════════════════════════
    LEFT ANNOUNCEMENT RAIL
 ══════════════════════════════ */
@@ -517,6 +538,20 @@ body {
   background: rgba(232,160,32,0.55);
   animation: floatUp linear infinite;
 }
+
+.screen.is-lite .particles {
+  display: none;
+}
+
+.screen.is-lite .orb,
+.screen.is-lite .welcome-tag,
+.screen.is-lite .logo-wrap img,
+.screen.is-lite .roar-line,
+.screen.is-lite .ticker-track,
+.screen.is-lite .announcement-track.is-scrolling {
+  animation: none !important;
+}
+
 @keyframes floatUp {
   0%   { transform: translateY(0) scale(1);   opacity:.7; }
   100% { transform: translateY(-110vh) scale(.3); opacity:0; }
@@ -810,7 +845,7 @@ body {
     <div class="orb"></div>
 
     <!-- floating particles -->
-    <div class="particles" id="particles"><div class="particle" style="width: 6.26126px; height: 6.26126px; left: 95.3927%; bottom: -10px; opacity: 0.407428; animation-duration: 18.3929s; animation-delay: 2.46364s;"></div><div class="particle" style="width: 3.78527px; height: 3.78527px; left: 39.2503%; bottom: -10px; opacity: 0.664582; animation-duration: 19.398s; animation-delay: 3.90086s;"></div><div class="particle" style="width: 4.38706px; height: 4.38706px; left: 43.0209%; bottom: -10px; opacity: 0.483265; animation-duration: 10.0703s; animation-delay: 5.47156s;"></div><div class="particle" style="width: 4.31697px; height: 4.31697px; left: 67.1078%; bottom: -10px; opacity: 0.202481; animation-duration: 14.3734s; animation-delay: 2.32026s;"></div><div class="particle" style="width: 6.04632px; height: 6.04632px; left: 54.556%; bottom: -10px; opacity: 0.222687; animation-duration: 18.3614s; animation-delay: 7.66677s;"></div><div class="particle" style="width: 5.07848px; height: 5.07848px; left: 3.03125%; bottom: -10px; opacity: 0.293831; animation-duration: 12.7958s; animation-delay: 8.69474s;"></div><div class="particle" style="width: 4.65055px; height: 4.65055px; left: 35.1787%; bottom: -10px; opacity: 0.734194; animation-duration: 19.763s; animation-delay: 5.44114s;"></div><div class="particle" style="width: 2.40283px; height: 2.40283px; left: 74.0124%; bottom: -10px; opacity: 0.699934; animation-duration: 11.7456s; animation-delay: 0.484923s;"></div><div class="particle" style="width: 6.61125px; height: 6.61125px; left: 18.8134%; bottom: -10px; opacity: 0.447962; animation-duration: 10.7773s; animation-delay: 0.302461s;"></div><div class="particle" style="width: 6.17127px; height: 6.17127px; left: 26.2296%; bottom: -10px; opacity: 0.790716; animation-duration: 12.2685s; animation-delay: 4.82857s;"></div><div class="particle" style="width: 5.22198px; height: 5.22198px; left: 65.8042%; bottom: -10px; opacity: 0.436553; animation-duration: 10.0601s; animation-delay: 8.31648s;"></div><div class="particle" style="width: 5.29761px; height: 5.29761px; left: 66.1782%; bottom: -10px; opacity: 0.281166; animation-duration: 16.548s; animation-delay: 3.98038s;"></div><div class="particle" style="width: 5.66189px; height: 5.66189px; left: 44.5581%; bottom: -10px; opacity: 0.555431; animation-duration: 11.8745s; animation-delay: 7.28924s;"></div><div class="particle" style="width: 5.19415px; height: 5.19415px; left: 42.3015%; bottom: -10px; opacity: 0.743985; animation-duration: 8.68083s; animation-delay: 5.14629s;"></div><div class="particle" style="width: 3.58213px; height: 3.58213px; left: 70.5089%; bottom: -10px; opacity: 0.784403; animation-duration: 9.09247s; animation-delay: 9.20479s;"></div><div class="particle" style="width: 4.58748px; height: 4.58748px; left: 56.7435%; bottom: -10px; opacity: 0.65317; animation-duration: 12.6176s; animation-delay: 8.2175s;"></div><div class="particle" style="width: 6.03385px; height: 6.03385px; left: 75.302%; bottom: -10px; opacity: 0.624115; animation-duration: 10.9787s; animation-delay: 7.8968s;"></div><div class="particle" style="width: 4.90836px; height: 4.90836px; left: 63.0281%; bottom: -10px; opacity: 0.766539; animation-duration: 13.4908s; animation-delay: 7.00362s;"></div></div>
+    <div class="particles" id="particles"></div>
 
     <div class="content-center">
       <div class="welcome-tag">Welcome to</div>
@@ -902,11 +937,18 @@ const ANNOUNCEMENT_CONFIG = {
   fallbackHeading: 'School Announcements',
 };
 
+const pageParams = new URLSearchParams(window.location.search);
+const deviceMemoryGb = Number(navigator.deviceMemory || 0);
+const forceLiteMode = pageParams.get('lite') === '1' || pageParams.get('mode') === 'lite';
+const isLowMemoryDevice = forceLiteMode || (deviceMemoryGb > 0 && deviceMemoryGb <= 1);
+
 const screenEl = document.querySelector('.screen');
 const announcementPanelEl = document.getElementById('announcement-panel');
 const announcementHeaderEl = document.getElementById('announcement-header');
 const announcementViewportEl = document.querySelector('.announcement-viewport');
 const announcementTrackEl = document.getElementById('announcement-track');
+
+screenEl.classList.toggle('is-lite', isLowMemoryDevice);
 
 function getAnnouncementOverride() {
   const params = new URLSearchParams(window.location.search);
@@ -1129,6 +1171,10 @@ tick(); setInterval(tick, 10000);
 // Floating particles
 const container = document.getElementById('particles');
 function makeParticle() {
+  if (!container) {
+    return;
+  }
+
   const p = document.createElement('div');
   p.className = 'particle';
   const size = Math.random() * 5 + 2;
@@ -1143,8 +1189,14 @@ function makeParticle() {
   container.appendChild(p);
   setTimeout(() => p.remove(), 22000);
 }
-for(let i=0;i<18;i++) setTimeout(makeParticle, i*600);
-setInterval(makeParticle, 1200);
+
+if (!isLowMemoryDevice) {
+  for (let i = 0; i < 12; i += 1) {
+    setTimeout(makeParticle, i * 750);
+  }
+
+  setInterval(makeParticle, 2200);
+}
 </script>
 
 
