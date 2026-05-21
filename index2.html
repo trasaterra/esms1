@@ -930,6 +930,31 @@ body {
 
 </div>
 
+<script id="embedded-weekly-events" type="application/json">
+{
+  "heading": "This Week | May 21 - May 24",
+  "generatedAt": "2026-05-21T08:53:35.252320-04:00",
+  "events": [
+    {
+      "title": "PTA Meeting (in person 9:15am)",
+      "description": "PTA Meeting \u2013 May 21 (in person 9:15)",
+      "allDay": false,
+      "start": "2026-05-21T09:15:00-04:00",
+      "end": "2026-05-21T10:15:00-04:00",
+      "label": "THU MAY 21 | 9:15 AM"
+    },
+    {
+      "title": "Girls Soccer Game",
+      "description": "ESMS vs. BK 318",
+      "allDay": false,
+      "start": "2026-05-21T17:00:00-04:00",
+      "end": "2026-05-22T00:00:00-04:00",
+      "label": "THU MAY 21 | 5:00 PM"
+    }
+  ]
+}
+</script>
+
 <script>
 const ANNOUNCEMENT_CONFIG = {
   eventsApiUrl: '/api/weekly-events',
@@ -991,6 +1016,21 @@ function loadJson(url) {
   });
 }
 
+function readEmbeddedJson(scriptId) {
+  const script = document.getElementById(scriptId);
+
+  if (!script) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(script.textContent || 'null');
+  } catch (error) {
+    console.error(`Embedded JSON parse failed for ${scriptId}.`, error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
 function formatPanelDate(date) {
   const weekday = date.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
   const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
@@ -1010,7 +1050,13 @@ function isSameLocalDate(firstDate, secondDate) {
 }
 
 function buildAnnouncementDisplay(payload) {
-  const events = Array.isArray(payload.events) ? payload.events : [];
+  const now = new Date();
+  const events = Array.isArray(payload.events)
+    ? payload.events.filter((event) => {
+        const endDate = new Date(event.end || event.start);
+        return !Number.isNaN(endDate.getTime()) && endDate > now;
+      })
+    : [];
   const today = new Date();
   const todaysEvents = events.filter((event) => isSameLocalDate(new Date(event.start), today));
   const selectedEvents = todaysEvents.length
@@ -1127,8 +1173,21 @@ async function fetchAnnouncements() {
     };
   }
 
-  const payload = await loadJson(ANNOUNCEMENT_CONFIG.eventsApiUrl);
-  return buildAnnouncementDisplay(payload);
+  const embeddedEvents = readEmbeddedJson('embedded-weekly-events');
+  if (window.location.protocol === 'file:' && embeddedEvents) {
+    return buildAnnouncementDisplay(embeddedEvents);
+  }
+
+  try {
+    const payload = await loadJson(ANNOUNCEMENT_CONFIG.eventsApiUrl);
+    return buildAnnouncementDisplay(payload);
+  } catch (error) {
+    if (embeddedEvents) {
+      return buildAnnouncementDisplay(embeddedEvents);
+    }
+
+    throw error;
+  }
 }
 
 async function refreshAnnouncements() {
