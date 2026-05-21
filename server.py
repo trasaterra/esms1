@@ -21,6 +21,7 @@ CALENDAR_ICS_URL = "https://ical.echalk.com/tQKq5cnYG4EIDSuQaJurZXbuXu57067msoD3
 CACHE_TTL_SECONDS = 300
 LOCAL_TIMEZONE = ZoneInfo("America/New_York")
 ROOT_DIR = Path(__file__).resolve().parent
+UPCOMING_WEEKS_TO_INCLUDE = 6
 
 _CACHE_LOCK = Lock()
 _CACHE_PAYLOAD: dict[str, Any] | None = None
@@ -143,10 +144,11 @@ def build_weekly_events_payload() -> dict[str, Any]:
     week_start = datetime.combine(now.date(), time.min, tzinfo=LOCAL_TIMEZONE)
     days_until_next_monday = (7 - week_start.weekday()) % 7 or 7
     week_end = week_start + timedelta(days=days_until_next_monday)
+    window_end = week_start + timedelta(weeks=UPCOMING_WEEKS_TO_INCLUDE)
 
     weekly_events = []
     for event in parse_ical_events(ics_text):
-        if event["end"] <= week_start or event["start"] >= week_end:
+        if event["end"] <= week_start or event["start"] >= window_end:
             continue
 
         weekly_events.append({

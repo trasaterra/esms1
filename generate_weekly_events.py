@@ -12,6 +12,12 @@ CALENDAR_ICS_URL = "https://ical.echalk.com/tQKq5cnYG4EIDSuQaJurZXbuXu57067msoD3
 LOCAL_TIMEZONE = ZoneInfo("America/New_York")
 ROOT_DIR = Path(__file__).resolve().parent.parent
 OUTPUT_PATH = ROOT_DIR / "weekly-events.json"
+EMBED_TARGETS = [ROOT_DIR / "index.html", ROOT_DIR / "index2.html"]
+UPCOMING_WEEKS_TO_INCLUDE = 6
+EMBEDDED_EVENTS_PATTERN = re.compile(
+    r'(<script id="embedded-weekly-events" type="application/json">\n)(.*?)(\n</script>)',
+    re.DOTALL,
+)
 
 
 def unfold_ical_lines(raw_text: str) -> list[str]:
@@ -124,6 +130,7 @@ def build_weekly_events_payload() -> dict[str, object]:
     week_start = datetime.combine(now.date(), time.min, tzinfo=LOCAL_TIMEZONE)
     days_until_next_monday = (7 - week_start.weekday()) % 7 or 7
     week_end = week_start + timedelta(days=days_until_next_monday)
+    window_end = week_start + timedelta(weeks=UPCOMING_WEEKS_TO_INCLUDE)
 
     weekly_events: list[dict[str, object]] = []
     for event in parse_ical_events(ics_text):
@@ -132,7 +139,7 @@ def build_weekly_events_payload() -> dict[str, object]:
         if not isinstance(start_dt, datetime) or not isinstance(end_dt, datetime):
             continue
 
-        if end_dt <= week_start or start_dt >= week_end:
+        if end_dt <= week_start or start_dt >= window_end:
             continue
 
         weekly_events.append({
@@ -155,9 +162,26 @@ def build_weekly_events_payload() -> dict[str, object]:
     }
 
 
+def write_embedded_payload(target_path: Path, payload: dict[str, object]) -> None:
+    document = target_path.read_text(encoding="utf-8")
+    embedded_payload = json.dumps(payload, indent=2)
+    updated_document, replacements = EMBEDDED_EVENTS_PATTERN.subn(
+        lambda match: f"{match.group(1)}{embedded_payload}{match.group(3)}",
+        document,
+        count=1,
+    )
+
+    if replacements != 1:
+        raise ValueError(f"Could not update embedded weekly events in {target_path}")
+
+    target_path.write_text(updated_document, encoding="utf-8")
+
+
 def main() -> None:
     payload = build_weekly_events_payload()
     OUTPUT_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    for target_path in EMBED_TARGETS:
+        write_embedded_payload(target_path, payload)
     print(f"Wrote {OUTPUT_PATH}")
 
 

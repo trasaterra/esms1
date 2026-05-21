@@ -1,6 +1,6 @@
 {
   "heading": "This Week | May 21 - May 24",
-  "generatedAt": "2026-05-21T08:53:35.252320-04:00",
+  "generatedAt": "2026-05-21T09:11:29.411693-04:00",
   "events": [
     {
       "title": "PTA Meeting (in person 9:15am)",
@@ -17,6 +17,134 @@
       "start": "2026-05-21T17:00:00-04:00",
       "end": "2026-05-22T00:00:00-04:00",
       "label": "THU MAY 21 | 5:00 PM"
+    },
+    {
+      "title": "Memorial Day - Schools Closed",
+      "description": "",
+      "allDay": true,
+      "start": "2026-05-25T00:00:00-04:00",
+      "end": "2026-05-26T00:00:00-04:00",
+      "label": "MON MAY 25"
+    },
+    {
+      "title": "Eid al-Adha - Schools Closed",
+      "description": "",
+      "allDay": true,
+      "start": "2026-05-27T00:00:00-04:00",
+      "end": "2026-05-28T00:00:00-04:00",
+      "label": "WED MAY 27"
+    },
+    {
+      "title": "Anniversary Day - No Students",
+      "description": "",
+      "allDay": true,
+      "start": "2026-06-04T00:00:00-04:00",
+      "end": "2026-06-05T00:00:00-04:00",
+      "label": "THU JUN 4"
+    },
+    {
+      "title": "Clerical Day - No Students",
+      "description": "",
+      "allDay": true,
+      "start": "2026-06-05T00:00:00-04:00",
+      "end": "2026-06-06T00:00:00-04:00",
+      "label": "FRI JUN 5"
+    },
+    {
+      "title": "Executive Board Meeting (zoom 6pm)",
+      "description": "Executive Board Meeting \u2013 June 9 (zoom 6 pm)",
+      "allDay": false,
+      "start": "2026-06-09T18:00:00-04:00",
+      "end": "2026-06-09T19:00:00-04:00",
+      "label": "TUE JUN 9 | 6:00 PM"
+    },
+    {
+      "title": "Dance Showcase, Grades 6 + 8",
+      "description": "Save the Date ESMS Dance Showcase Featuring grades 6 + 8 Classes performing: 601, 602, 603 + 8th Grade Ballroom Dancers Showcase will be held in the ESMS Gym. Specific Showtimes TBD. Each show is approximately 40 minutes Email ldeneroff@schools.nyc.gov with questions. --ATTACHMENTS-- Images: 1. savethedate PNG.jpg",
+      "allDay": false,
+      "start": "2026-06-11T15:30:00-04:00",
+      "end": "2026-06-11T18:00:00-04:00",
+      "label": "THU JUN 11 | 3:30 PM"
+    },
+    {
+      "title": "Sunset Dance",
+      "description": "Sunset Dance (Open to.all grades)",
+      "allDay": false,
+      "start": "2026-06-12T18:00:00-04:00",
+      "end": "2026-06-12T19:45:00-04:00",
+      "label": "FRI JUN 12 | 6:00 PM"
+    },
+    {
+      "title": "Dance Showcase, Grades 6 + 8",
+      "description": "Save the Date ESMS Dance Showcase, Featuring Grades 6 + 8 Classes performing: 604, 605 +&nbsp;8th Grade Ballroom Dancers Showcase will be held in the ESMS Gym. Specific Showtimes TBD. Each show is approximately 40 minutes Email ldeneroff@schools.nyc.gov with questions. --ATTACHMENTS-- Images: 1. savethedate PNG(1).jpg",
+      "allDay": false,
+      "start": "2026-06-15T15:30:00-04:00",
+      "end": "2026-06-15T17:30:00-04:00",
+      "label": "MON JUN 15 | 3:30 PM"
+    },
+    {
+      "title": "PTA Meeting (in person 9:15am)",
+      "description": "PTA Meeting \u2013 June 16 (in person 9:15 am)",
+      "allDay": false,
+      "start": "2026-06-16T09:15:00-04:00",
+      "end": "2026-06-16T10:15:00-04:00",
+      "label": "TUE JUN 16 | 9:15 AM"
+    },
+    {
+      "title": "8th Grade Biology Regents",
+      "description": "Biology Regents (Paper)",
+      "allDay": true,
+      "start": "2026-06-17T00:00:00-04:00",
+      "end": "2026-06-18T00:00:00-04:00",
+      "label": "WED JUN 17"
+    },
+    {
+      "title": "8th grade cruise (Need DJ and Photo Booth)",
+      "description": "June 18, 2026 - 8th grade cruise Need DJ and Photo Booth",
+      "allDay": true,
+      "start": "2026-06-18T00:00:00-04:00",
+      "end": "2026-06-19T00:00:00-04:00",
+      "label": "THU JUN 18"
+    },
+    {
+      "title": "8th Grade Algebra Regents",
+      "description": "Algebra Regents (Paper)",
+      "allDay": true,
+      "start": "2026-06-18T00:00:00-04:00",
+      "end": "2026-06-19T00:00:00-04:00",
+      "label": "THU JUN 18"
+    },
+    {
+      "title": "Juneteenth - Schools Closed",
+      "description": "",
+      "allDay": true,
+      "start": "2026-06-19T00:00:00-04:00",
+      "end": "2026-06-20T00:00:00-04:00",
+      "label": "FRI JUN 19"
+    },
+    {
+      "title": "8th Grade Spanish Proficiency",
+      "description": "Spanish Proficiency",
+      "allDay": true,
+      "start": "2026-06-22T00:00:00-04:00",
+      "end": "2026-06-23T00:00:00-04:00",
+      "label": "MON JUN 22"
+    },
+    {
+      "title": "Graduation",
+      "description": "Graduation is June 23 9:30am 92Y",
+      "allDay": true,
+      "start": "2026-06-23T00:00:00-04:00",
+      "end": "2026-06-24T00:00:00-04:00",
+      "label": "TUE JUN 23"
+    },
+    {
+      "title": "Last Day of School",
+      "description": "",
+      "allDay": true,
+      "start": "2026-06-26T00:00:00-04:00",
+      "end": "2026-06-27T00:00:00-04:00",
+      "label": "FRI JUN 26"
     }
   ]
 }
